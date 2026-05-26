@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
-import pandas as pd
+import polars as pl
 from rapidfuzz import fuzz
 
 # =========================
@@ -11,16 +11,15 @@ TOKEN = "8862234704:AAHoq9-GtNh5RwGx0VRlkXecHdlxzlv1r7g"
 # =========================
 # CSV FILE LOAD
 # =========================
-df = pd.read_csv("price.csv", dtype=str)
-df = df.fillna("")
+df = pl.read_csv("price.csv", infer_schema_length=0)
 
 all_data = []
-for index, row in df.iterrows():
+for row in df.iter_rows(named=True):
     try:
-        code = str(row.iloc[0]).strip()
-        desc = str(row.iloc[1]).strip()
+        code = str(list(row.values())[0]).strip()
+        desc = str(list(row.values())[1]).strip()
         if len(code) > 2 and len(desc) > 2:
-            all_data.append(row)
+            all_data.append(list(row.values()))
     except:
         pass
 
@@ -37,8 +36,8 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     for row in all_data:
         try:
-            code = str(row.iloc[0]).strip().lower()
-            desc = str(row.iloc[1]).strip().lower()
+            code = str(row[0]).strip().lower()
+            desc = str(row[1]).strip().lower()
 
             if text == code:
                 results.append(row)
@@ -57,13 +56,13 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = "Products Found\n\n"
         for row in results[:5]:
             try:
-                msg += f"Code: {row.iloc[0]}\n"
-                msg += f"Description: {row.iloc[1]}\n"
-                msg += f"SDP: Rs.{row.iloc[2]}\n"
-                msg += f"NRP: Rs.{row.iloc[3]}\n"
-                msg += f"MRP: Rs.{row.iloc[4]}\n"
-                msg += f"Old NRP: Rs.{row.iloc[5]}\n"
-                msg += f"Old MRP: Rs.{row.iloc[6]}\n"
+                msg += f"Code: {row[0]}\n"
+                msg += f"Description: {row[1]}\n"
+                msg += f"SDP: Rs.{row[2]}\n"
+                msg += f"NRP: Rs.{row[3]}\n"
+                msg += f"MRP: Rs.{row[4]}\n"
+                msg += f"Old NRP: Rs.{row[5]}\n"
+                msg += f"Old MRP: Rs.{row[6]}\n"
                 msg += "-----------------------------\n\n"
             except:
                 pass
