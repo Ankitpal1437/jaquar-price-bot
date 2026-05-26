@@ -9,7 +9,7 @@ from rapidfuzz import fuzz
 
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = "8862234704:AAFznYQd_ArcV_bwjo4dMFBVxEnVnLkonOY"
+TOKEN = "8775755021:AAHwEhQojAxclNTg4Hyp0ArxuXQ09sT6Zyc"
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
