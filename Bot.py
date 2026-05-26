@@ -9,7 +9,7 @@ from rapidfuzz import fuzz
 
 logging.basicConfig(level=logging.INFO)
 
-TOKEN = "8862234704:AAHoq9-GtNh5RwGx0VRlkXecHdlxzlv1r7g"
+TOKEN = "8862234704:AAFznYQd_ArcV_bwjo4dMFBVxEnVnLkonOY"
 
 # =========================
 # DUMMY HTTP SERVER
