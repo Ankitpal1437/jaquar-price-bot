@@ -1,7 +1,11 @@
+import asyncio
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 import polars as pl
 from rapidfuzz import fuzz
+
+logging.basicConfig(level=logging.INFO)
 
 # =========================
 # TELEGRAM TOKEN
@@ -16,10 +20,11 @@ df = pl.read_csv("price.csv", infer_schema_length=0)
 all_data = []
 for row in df.iter_rows(named=True):
     try:
-        code = str(list(row.values())[0]).strip()
-        desc = str(list(row.values())[1]).strip()
+        vals = list(row.values())
+        code = str(vals[0]).strip()
+        desc = str(vals[1]).strip()
         if len(code) > 2 and len(desc) > 2:
-            all_data.append(list(row.values()))
+            all_data.append(vals)
     except:
         pass
 
@@ -30,7 +35,6 @@ print("Bot Online Hai")
 # BOT REPLY FUNCTION
 # =========================
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     text = update.message.text.strip().lower()
     results = []
 
@@ -74,6 +78,14 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # START BOT
 # =========================
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(MessageHandler(filters.TEXT, reply))
-app.run_polling()
+async def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT, reply))
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    print("Polling started...")
+    await asyncio.Event().wait()
+
+if __name__ == "__main__":
+    asyncio.run(main())
