@@ -74,7 +74,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 msg += f"💰 MRP: Rs.{row[4]}\n\n"
                 msg += f"📜 Old NRP: Rs.{row[5]}\n"
                 msg += f"📜 Old MRP: Rs.{row[6]}\n"
-                msg += "➖➖➖➖➖➖➖➖➖➖\n\n"
+                msg += "-----------------------------\n\n"
             except:
                 pass
     else:
@@ -87,7 +87,7 @@ async def main():
     app.add_handler(MessageHandler(filters.TEXT, reply))
     await app.initialize()
     await app.start()
-    await app.updater.start_polling()
+    await app.updater.start_polling(drop_pending_updates=True)
     print("Polling started...")
     await asyncio.Event().wait()
 
