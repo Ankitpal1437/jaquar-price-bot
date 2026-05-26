@@ -11,10 +11,6 @@ logging.basicConfig(level=logging.INFO)
 
 TOKEN = "8862234704:AAFznYQd_ArcV_bwjo4dMFBVxEnVnLkonOY"
 
-# =========================
-# DUMMY HTTP SERVER
-# Render ko khush rakhne ke liye
-# =========================
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -29,9 +25,6 @@ def run_server():
 
 threading.Thread(target=run_server, daemon=True).start()
 
-# =========================
-# CSV FILE LOAD
-# =========================
 df = pl.read_csv("price.csv", infer_schema_length=0)
 
 all_data = []
@@ -48,9 +41,6 @@ for row in df.iter_rows(named=True):
 print(f"Loaded {len(all_data)} products")
 print("Bot Online Hai")
 
-# =========================
-# BOT REPLY FUNCTION
-# =========================
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip().lower()
     results = []
@@ -74,27 +64,24 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     if results:
-        msg = "🔍 *Products Found*\n\n"
+        msg = "🔍 Products Found\n\n"
         for row in results[:5]:
             try:
-                msg += f"📦 *Code:* `{row[0]}`\n"
-                msg += f"📝 *{row[1]}*\n\n"
-                msg += f"💰 *SDP:* ₹{row[2]}\n"
-                msg += f"💰 *NRP:* ₹{row[3]}\n"
-                msg += f"💰 *MRP:* ₹{row[4]}\n\n"
-                msg += f"📜 *Old NRP:* ₹{row[5]}\n"
-                msg += f"📜 *Old MRP:* ₹{row[6]}\n"
+                msg += f"📦 Code: {row[0]}\n"
+                msg += f"📝 {row[1]}\n\n"
+                msg += f"💰 SDP: Rs.{row[2]}\n"
+                msg += f"💰 NRP: Rs.{row[3]}\n"
+                msg += f"💰 MRP: Rs.{row[4]}\n\n"
+                msg += f"📜 Old NRP: Rs.{row[5]}\n"
+                msg += f"📜 Old MRP: Rs.{row[6]}\n"
                 msg += "➖➖➖➖➖➖➖➖➖➖\n\n"
             except:
                 pass
     else:
-        msg = "❌ *Product nahi mila!*\n\nKripya sahi product code ya naam likho.\n\n💡 _Example: CHR\\-079N ya diverter_"
+        msg = "❌ Product nahi mila!\n\nKripya sahi code ya naam likho.\nExample: CHR-079N"
 
-    await update.message.reply_text(msg, parse_mode="MarkdownV2")
+    await update.message.reply_text(msg)
 
-# =========================
-# START BOT
-# =========================
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(MessageHandler(filters.TEXT, reply))
@@ -106,3 +93,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
