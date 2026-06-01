@@ -28,86 +28,115 @@ for row in df.iter_rows(named=True):
 print(f"Loaded {len(all_data)} products")
 print("Bot Online Hai")
 
-def format_product(row):
-    code = str(row.get('CODE', '')).strip()
-    desc = str(row.get('DESCRIPTION', '')).strip()
-    sdp = str(row.get('SDP', '')).strip()
-    nrp = str(row.get('NRP', '')).strip()
-    mrp = str(row.get('MRP', '')).strip()
-    old_nrp = str(row.get('OLD_NRP', '')).strip()
-    old_mrp = str(row.get('OLD_MRP', '')).strip()
-    source = str(row.get('SOURCE', '')).strip()
+def search_products(text):
+    text = text.strip().lower()
+    
+    exact = []       # Bilkul same code
+    starts = []      # Code jo text se shuru ho
+    contains = []    # Code ya desc mein text hai
+    fuzzy = []       # Similar match
 
-    msg = f"📦 Code: {code}\n"
-    msg += f"📝 {desc}\n\n"
+    for row in all_data:
+        try:
+            code = str(row.get('CODE', '')).strip().lower()
+            desc = str(row.get('DESCRIPTION', '')).strip().lower()
 
-    if source == 'LIGHTING':
-        ewp = str(row.get('EWP', '')).strip()
-        mdp = str(row.get('MDP', '')).strip()
-        npp = str(row.get('NPP', '')).strip()
-        if ewp and ewp not in ['None','nan','']: msg += f"💡 EWP: Rs.{ewp}\n"
-        if mdp and mdp not in ['None','nan','']: msg += f"💡 MDP: Rs.{mdp}\n"
-        if sdp and sdp not in ['None','nan','']: msg += f"💰 SDP: Rs.{sdp}\n"
-        if npp and npp not in ['None','nan','']: msg += f"💰 NPP: Rs.{npp}\n"
-        if nrp and nrp not in ['None','nan','']: msg += f"💰 NRP: Rs.{nrp}\n"
-        if mrp and mrp not in ['None','nan','']: msg += f"💰 MRP: Rs.{mrp}\n"
-        msg += f"🔆 Category: Lighting\n"
-    else:
-        if sdp and sdp not in ['None','nan','']: msg += f"💰 SDP: Rs.{sdp}\n"
-        if nrp and nrp not in ['None','nan','']: msg += f"💰 NRP: Rs.{nrp}\n"
-        if mrp and mrp not in ['None','nan','']: msg += f"💰 MRP: Rs.{mrp}\n"
-        if old_nrp and old_nrp not in ['None','nan','-','']: msg += f"📜 Old NRP: Rs.{old_nrp}\n"
-        if old_mrp and old_mrp not in ['None','nan','-','']: msg += f"📜 Old MRP: Rs.{old_mrp}\n"
-        msg += f"🚿 Category: Fittings\n"
+            if text == code:
+                exact.append(row)
+            elif code.startswith(text):
+                starts.append(row)
+            elif text in code or text in desc:
+                contains.append(row)
+            else:
+                score = fuzz.partial_ratio(text, code)
+                if score > 85:
+                    fuzzy.append((score, row))
+        except:
+            pass
 
-    msg += "-----------------------------\n\n"
-    return msg
+    # Fuzzy results score ke hisaab se sort karo
+    fuzzy_sorted = [r for _, r in sorted(fuzzy, key=lambda x: -x[0])]
+
+    # Priority order: exact → starts_with → contains → fuzzy
+    final = exact + starts + contains + fuzzy_sorted
+
+    # Duplicates hata do
+    seen = set()
+    unique = []
+    for r in final:
+        code = str(r.get('CODE', ''))
+        if code not in seen:
+            seen.add(code)
+            unique.append(r)
+
+    return unique
 
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
-    text_lower = text.lower()
-
-    exact_match = []      # Bilkul same code
-    starts_with = []      # Code jo text se start hota hai
-    contains_code = []    # Code mein text hai
-    desc_match = []       # Description mein text hai
-
-    for row in all_data:
-        code = str(row.get('CODE', '')).strip()
-        code_lower = code.lower()
-        desc_lower = str(row.get('DESCRIPTION', '')).strip().lower()
-
-        if code_lower == text_lower:
-            exact_match.append(row)
-        elif code_lower.startswith(text_lower):
-            starts_with.append(row)
-        elif text_lower in code_lower:
-            contains_code.append(row)
-        elif text_lower in desc_lower:
-            desc_match.append(row)
-
-    # Priority: exact → starts_with → contains → desc
-    results = exact_match + starts_with + contains_code + desc_match
+    results = search_products(text)
 
     if results:
         total = len(results)
         show = results[:5]
-        msg = f"🔍 *{total} product(s) mila*\n\n"
+        msg = f"🔍 {total} product(s) mila\n"
         if total > 5:
-            msg += f"_(Top 5 dikh rahe hain)_\n\n"
-        for row in show:
-            msg += format_product(row)
-    else:
-        msg = (
-            "❌ *Product nahi mila!*\n\n"
-            "💡 Tips:\n"
-            "• Exact code try karo: `AQT-CHR-3057P`\n"
-            "• Part of code: `3057P`\n"
-            "• Product naam: `angle cock`\n"
-            "• Series: `GRF` ya `CHR`"
-        )
+            msg += f"_(Top 5 dikh rahe hain)_\n"
+        msg += "\n"
 
-    await update.message.reply_text(msg, parse_mode="Markdown")
+        for row in show:
+            try:
+                code = str(row.get('CODE', '')).strip()
+                desc = str(row.get('DESCRIPTION', '')).strip()
+                sdp = str(row.get('SDP', '')).strip()
+                nrp = str(row.get('NRP', '')).strip()
+                mrp = str(row.get('MRP', '')).strip()
+                old_nrp = str(row.get('OLD_NRP', '')).strip()
+                old_mrp = str(row.get('OLD_MRP', '')).strip()
+                source = str(row.get('SOURCE', '')).strip()
+
+                msg += f"📦 Code: {code}\n"
+                msg += f"📝 {desc}\n\n"
+
+                if source == 'LIGHTING':
+                    ewp = str(row.get('EWP', '')).strip()
+                    mdp = str(row.get('MDP', '')).strip()
+                    npp = str(row.get('NPP', '')).strip()
+                    if ewp and ewp not in ['None','nan','']:
+                        msg += f"💡 EWP: Rs.{ewp}\n"
+                    if mdp and mdp not in ['None','nan','']:
+                        msg += f"💡 MDP: Rs.{mdp}\n"
+                    if sdp and sdp not in ['None','nan','']:
+                        msg += f"💰 SDP: Rs.{sdp}\n"
+                    if npp and npp not in ['None','nan','']:
+                        msg += f"💰 NPP: Rs.{npp}\n"
+                    if nrp and nrp not in ['None','nan','']:
+                        msg += f"💰 NRP: Rs.{nrp}\n"
+                    if mrp and mrp not in ['None','nan','']:
+                        msg += f"💰 MRP: Rs.{mrp}\n"
+                    msg += f"🔆 Category: Lighting\n"
+                else:
+                    if sdp and sdp not in ['None','nan','']:
+                        msg += f"💰 SDP: Rs.{sdp}\n"
+                    if nrp and nrp not in ['None','nan','']:
+                        msg += f"💰 NRP: Rs.{nrp}\n"
+                    if mrp and mrp not in ['None','nan','']:
+                        msg += f"💰 MRP: Rs.{mrp}\n"
+                    if old_nrp and old_nrp not in ['None','nan','']:
+                        msg += f"📜 Old NRP: Rs.{old_nrp}\n"
+                    if old_mrp and old_mrp not in ['None','nan','']:
+                        msg += f"📜 Old MRP: Rs.{old_mrp}\n"
+                    msg += f"🚿 Category: Fittings\n"
+
+                msg += "-----------------------------\n\n"
+            except:
+                pass
+
+        if total > 5:
+            msg += f"💡 Aur {total-5} products hain — zyada specific code likho!"
+    else:
+        msg = "❌ Product nahi mila!\n\nKripya sahi code ya naam likho.\nExample: ALD-CHR-079N"
+
+    await update.message.reply_text(msg)
 
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
@@ -126,7 +155,7 @@ async def main():
         return web.Response(text="OK")
 
     async def handle_health(request):
-        return web.Response(text="Jaquar Bot is Running! 🚿")
+        return web.Response(text="Jaquar Bot is Running!")
 
     web_app = web.Application()
     web_app.router.add_post(webhook_path, handle_webhook)
@@ -145,4 +174,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
