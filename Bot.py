@@ -30,11 +30,13 @@ print("Bot Online Hai")
 
 def search_products(text):
     text = text.strip().lower()
-    
-    exact = []       # Bilkul same code
-    starts = []      # Code jo text se shuru ho
-    contains = []    # Code ya desc mein text hai
-    fuzzy = []       # Similar match
+
+    exact = []        # AQT-CHR-3057P → AQT-CHR-3057P (bilkul same)
+    ends_with = []    # AQT-CHR-3057P ends with chr-3057p
+    starts_with = []  # AQT-CHR-3057PXXX starts with text
+    contains_code = []# code mein text hai
+    contains_desc = []# description mein text hai
+    fuzzy = []
 
     for row in all_data:
         try:
@@ -43,30 +45,37 @@ def search_products(text):
 
             if text == code:
                 exact.append(row)
+            elif code.endswith(text):
+                ends_with.append(row)
             elif code.startswith(text):
-                starts.append(row)
-            elif text in code or text in desc:
-                contains.append(row)
+                starts_with.append(row)
+            elif text in code:
+                # Check karo text ke baad code mein aur kuch nahi
+                idx = code.find(text)
+                after = code[idx+len(text):]
+                if after == '' or after.startswith('-'):
+                    ends_with.append(row)  # Close match
+                else:
+                    contains_code.append(row)
+            elif text in desc:
+                contains_desc.append(row)
             else:
                 score = fuzz.partial_ratio(text, code)
-                if score > 85:
+                if score > 88:
                     fuzzy.append((score, row))
         except:
             pass
 
-    # Fuzzy results score ke hisaab se sort karo
     fuzzy_sorted = [r for _, r in sorted(fuzzy, key=lambda x: -x[0])]
-
-    # Priority order: exact → starts_with → contains → fuzzy
-    final = exact + starts + contains + fuzzy_sorted
+    final = exact + ends_with + starts_with + contains_code + contains_desc + fuzzy_sorted
 
     # Duplicates hata do
     seen = set()
     unique = []
     for r in final:
-        code = str(r.get('CODE', ''))
-        if code not in seen:
-            seen.add(code)
+        c = str(r.get('CODE', ''))
+        if c not in seen:
+            seen.add(c)
             unique.append(r)
 
     return unique
